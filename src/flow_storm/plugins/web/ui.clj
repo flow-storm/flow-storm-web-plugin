@@ -21,6 +21,7 @@
 (defn- on-create [_]
   (try
     (let [threads-tables-box (ui/v-box :childs [] :spacing 20)
+          tables-scroll (ScrollPane. threads-tables-box)
           *thread->table-add-messages (atom {})
           *flow-id (atom 0)
           clear-all-tables (fn [] (.clear (.getChildren threads-tables-box)))
@@ -47,16 +48,22 @@
                                     :columns-with-percs [0.3 0.3 0.4]
                                     :on-click (fn [mev sel-rows _]
                                                 (when (ui-utils/double-click? mev)
-                                                  (let [idx (->> sel-rows first (some (fn [{:keys [idx]}] idx)))]
-                                                    (goto-location {:flow-id @*flow-id
-                                                                    :thread-id thread-id
-                                                                    :idx idx}))))
+                                                  (let [idx (->> sel-rows first (some (fn [{:keys [idx]}] idx)))
+                                                        flow-id @*flow-id]
+                                                    (when (and flow-id thread-id idx)
+                                                      (goto-location {:flow-id flow-id
+                                                                      :thread-id thread-id
+                                                                      :idx idx})))))
                                     :selection-mode :single)
                                    table-box (ui/v-box :childs [(ui/label :text (format "Thread id: %d" thread-id))
                                                                 table-view-pane])]
                                (doto table-view
-                                 (.setMinWidth 1000)
-                                 (.setMinWidth 1000))
+                                 (.setMinHeight 600)
+                                 (.setMaxHeight 1200))
+
+                               (-> table-view
+                                   .prefWidthProperty
+                                   (.bind (.widthProperty tables-scroll)))
 
                                (HBox/setHgrow table-view-pane Priority/ALWAYS)
                                (HBox/setHgrow table-view Priority/ALWAYS)
@@ -95,8 +102,7 @@
                                                                  (ui-utils/run-later
                                                                    (when-not (contains? @*thread->table-add-messages thread-id)
                                                                      (add-thread-table thread-id))
-                                                                   (add-messages-to-thread-table thread-id batch))))}))})
-          tables-scroll (ScrollPane. threads-tables-box)]
+                                                                   (add-messages-to-thread-table thread-id batch))))}))})]
       (VBox/setVgrow threads-tables-box Priority/ALWAYS)
       (HBox/setHgrow threads-tables-box Priority/ALWAYS)
 
