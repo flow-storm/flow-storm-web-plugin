@@ -4,6 +4,8 @@
 
 **WIP, it currently only support extracting information for http-kit (for the web part) and next.jdbc (for the database)**
 
+**Requires FlowStorm >= 4.2.0-alpha2**
+
 # Installation
 
 Add [![Clojars Project](https://img.shields.io/clojars/v/com.github.flow-storm/flow-storm-web-plugin.svg)](https://clojars.org/com.github.flow-storm/flow-storm-web-plugin) 

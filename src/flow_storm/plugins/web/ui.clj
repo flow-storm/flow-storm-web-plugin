@@ -34,7 +34,7 @@
                                                               (case type
                                                                 :fn-call (let [{:keys [fn-ns fn-name level]} msg]
                                                                            (format "%s %s/%s"
-                                                                                   (apply str (repeat level " "))
+                                                                                   (apply str (repeat (* 2 level) " "))
                                                                                    fn-ns
                                                                                    fn-name))
                                                                 :http-request  (let [{:keys [uri request-method]} (:req msg)]
@@ -102,7 +102,12 @@
                                                                  (ui-utils/run-later
                                                                    (when-not (contains? @*thread->table-add-messages thread-id)
                                                                      (add-thread-table thread-id))
-                                                                   (add-messages-to-thread-table thread-id batch))))}))})]
+                                                                   (add-messages-to-thread-table thread-id batch))))}))})
+          flow-clear (fn [flow-id]
+                       (when (= @*flow-id flow-id)
+                         (reset! *thread->table-add-messages {})
+                         (clear-all-tables)))]
+
       (VBox/setVgrow threads-tables-box Priority/ALWAYS)
       (HBox/setHgrow threads-tables-box Priority/ALWAYS)
 
@@ -110,7 +115,8 @@
                  :top toolbar-pane
                  :center tables-scroll)
        :flow-cmb flow-cmb
-       :selected-flow-id-ref *flow-id})
+       :selected-flow-id-ref *flow-id
+       :flow-clear flow-clear})
     (catch Exception e
       (.printStackTrace e)
       (ui/label :text (.getMessage e)))))
@@ -120,10 +126,15 @@
     (ui-utils/combo-box-set-items flow-cmb flow-ids)
     (ui-utils/combo-box-set-selected flow-cmb @selected-flow-id-ref)))
 
+(defn- on-flow-clear [flow-id {:keys [flow-clear]}]
+  (flow-clear flow-id))
+
 (fs-plugins/register-plugin
- :async-flow
+ :web
  {:label "Web"
+  :css-resource       "flow-storm-web-plugin/styles.css"
   :dark-css-resource  "flow-storm-web-plugin/dark.css"
   :light-css-resource "flow-storm-web-plugin/light.css"
   :on-focus on-focus
-  :on-create on-create})
+  :on-create on-create
+  :on-flow-clear on-flow-clear})
