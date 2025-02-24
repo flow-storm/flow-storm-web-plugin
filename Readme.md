@@ -2,7 +2,7 @@
 
 ![demo](./images/plugin_demo.png)
 
-**Requires FlowStorm >= 4.2.0-alpha2**
+**Requires FlowStorm >= 4.2.0-beta2**
 
 It currently supports and is tested with :
 
@@ -15,15 +15,16 @@ Dabatabses libs :
 
 - next.jdbc (1.3.994)
     
-# Installation
+# Setup
 
 Add [![Clojars Project](https://img.shields.io/clojars/v/com.github.flow-storm/flow-storm-web-plugin.svg)](https://clojars.org/com.github.flow-storm/flow-storm-web-plugin) 
 to your dependencies.
 
-Then on some dev namespace :
+Then add to the flow storm plugin jvm option this plugin namespace, like :
+
 
 ```clojure
-(require 'flow-storm.plugins.web.all)
+"-Dflowstorm.plugins.namespaces=flow-storm.plugins.web.all"
 ```
 
 When you open the FlowStorm UI you should see a new `Web` tab like in the picture above.
