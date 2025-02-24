@@ -29,7 +29,7 @@ Then on some dev namespace :
 When you open the FlowStorm UI you should see a new `Web` tab like in the picture above.
 
 The plugin needs the recordings of the internals of the web and database libraries namespaces it is going to work with so your FlowStorm instrumentation should include 
-these. You can set them via jvm options or any other means like `"-Dclojure.storm.instrumentOnlyPrefixes=next.jdbc,org.httpkit,my-web-app-ns"`
+these. You can set them via jvm options or by any other means like `"-Dclojure.storm.instrumentOnlyPrefixes=next.jdbc,org.httpkit,my-web-app-ns"`
 
 Minimum instrumentation prefixes needed for each library :
 
@@ -37,14 +37,11 @@ Minimum instrumentation prefixes needed for each library :
 - ring-jetty-adapter (`ring.adapter.jetty`)
 - next.jdbc (`next.jdbc.result-set`)
 
-
-the `org.httpkit` and `next.jdbc` prefixes added to your code prefixes, like 
-
 # Usage
 
-Just record your activity as usual, then head to the Web tab, select the flow you recorded in and click refresh.
+Record your activity as usual, then head to the Web tab, select the flow you recorded in and click refresh.
 
 You should see one table per thread, and each table should contain the flow of the requests handled by that thread,
-with the request, followed by your code functions code and any sql statements down to the response.
+with the request, followed by your functions code and any sql statements down to the response.
 
 Double clicking on any row should take you to that point in time in the code stepper.
