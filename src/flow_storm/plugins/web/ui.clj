@@ -73,9 +73,6 @@
                                    table-box (ui/v-box :childs [(ui/label :text (format "Thread id: %d" thread-id)
                                                                           :class "thread-id")
                                                                 table-view-pane])]
-                               (doto table-view
-                                 ;;(.setMinHeight 600)
-                                 #_(.setMaxHeight 1200))
 
                                (-> table-view
                                    .prefWidthProperty
