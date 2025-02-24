@@ -1,0 +1,12 @@
+.web .table-view {
+    -fx-font-family: 'monospaced';
+}
+
+.web .table-view .row-label {
+    -fx-text-fill: #333; 
+}
+
+.web .label.thread-id {
+    -fx-font-weight: bold;
+    -fx-font-size: 20;
+}

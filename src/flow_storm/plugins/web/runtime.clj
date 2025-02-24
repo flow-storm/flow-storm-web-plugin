@@ -3,6 +3,10 @@
             [flow-storm.runtime.debuggers-api :as dbg-api]
             [clojure.string :as str]))
 
+;;;;;;;;;;;
+;; Utils ;;
+;;;;;;;;;;;
+
 (defn- find-entry-idx-for-pred [timeline start-idx next-idx-fn pred]
   (loop [i start-idx]
     (when (<= 0 i (dec (count timeline)))
@@ -17,13 +21,36 @@
                              (get timeline (ia/fn-call-idx entry)))]
     (ia/get-fn-ns entry-fn-call)))
 
+(defn- walk-backwards-to-entry-without-ns-prefix [timeline idx prefix]
+  (find-entry-idx-for-pred
+   timeline
+   idx
+   dec
+   (fn [entry]
+     (not (str/starts-with? (fn-call-ns timeline entry) prefix)))))
+
+(defn- walk-forward-to-entry-without-ns-prefix [timeline idx prefix]
+  (find-entry-idx-for-pred
+   timeline
+   idx
+   inc
+   (fn [entry]
+     (not (str/starts-with? (fn-call-ns timeline entry) prefix)))))
+
+;;;;;;;;;;;;;;;;;;;;
+;; Entry matchers ;;
+;;;;;;;;;;;;;;;;;;;;
+
+;; Httpkit
 (defn- http-kit-req-handling-entry? [timeline entry]
   (boolean
-   (let [idx (ia/entry-idx entry)]
+   (let [idx (ia/entry-idx entry)
+         fn-call (get timeline (ia/fn-call-idx entry))]
      (and (> idx 1)
           (ia/expr-trace? entry)
           (map? (ia/get-expr-val entry))
           (= 'rreq (ia/get-sub-form timeline entry))
+          (str/starts-with? (ia/get-fn-name fn-call) "wrap-ring-websocket")
           (let [prev-entry (get timeline (dec idx))]
             (and
              (ia/expr-trace? prev-entry)
@@ -32,18 +59,30 @@
 
 (defn- http-kit-resp-handling-entry? [timeline entry]
   (boolean
-   (and (ia/expr-trace? entry)
-        (map? (ia/get-expr-val entry))
-        (= '(ring-websocket-resp rreq (ring-handler rreq)) (ia/get-sub-form timeline entry)))))
+   (let [fn-call (get timeline (ia/fn-call-idx entry))]
+     (and (ia/expr-trace? entry)
+          (map? (ia/get-expr-val entry))
+          (= '(ring-websocket-resp rreq (ring-handler rreq)) (ia/get-sub-form timeline entry))
+          (str/starts-with? (ia/get-fn-name fn-call) "wrap-ring-websocket")))))
 
-(defn- http-or-db-entry? [timeline entry]
+;; Jetty
+(defn- jetty-req-handling-entry? [timeline entry]
   (boolean
-   (let [entry-fn-call (if (ia/fn-call-trace? entry)
-                         entry
-                         (get timeline (ia/fn-call-idx entry)))]
-     (or (str/starts-with? (ia/get-fn-ns entry-fn-call) "next.jdbc")
-         (str/starts-with? (ia/get-fn-ns entry-fn-call) "org.httpkit")))))
+   (let [fn-call (get timeline (ia/fn-call-idx entry))]
+     (and (ia/expr-trace? entry)
+          (map? (ia/get-expr-val entry))
+          (= 'request-map (ia/get-sub-form timeline entry))
+          (str/starts-with? (ia/get-fn-name fn-call) "proxy-handler")))))
 
+(defn- jetty-resp-handling-entry? [timeline entry]
+  (boolean
+   (let [fn-call (get timeline (ia/fn-call-idx entry))]
+     (and (ia/expr-trace? entry)
+          (map? (ia/get-expr-val entry))
+          (= '(handler request-map) (ia/get-sub-form timeline entry))
+          (str/starts-with? (ia/get-fn-name fn-call) "proxy-handler")))))
+
+;; Next-Jdbc
 (defn- next-jdbc-sql-entry? [timeline entry]
   (boolean
    (let [idx (ia/entry-idx entry)]
@@ -54,6 +93,20 @@
             (and
              (ia/expr-trace? entry+2)
              (= '(rest sql-params) (ia/get-sub-form timeline entry+2))))))))
+
+(defn- http-or-db-entry? [timeline entry]
+  (boolean
+   (let [entry-fn-call (if (ia/fn-call-trace? entry)
+                         entry
+                         (get timeline (ia/fn-call-idx entry)))
+         fn-ns (ia/get-fn-ns entry-fn-call)]
+     (or (str/starts-with? fn-ns "next.jdbc")
+         (str/starts-with? fn-ns "org.httpkit")
+         (str/starts-with? fn-ns "ring.adapter.jetty")))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Timelnie keeper (finder) ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn data-keeper [*threads-fns-level flow-id thread-id entry]
 
@@ -85,24 +138,28 @@
          {:type :http-request
           :req (dissoc req :body)
           :thread-id thread-id
-          :idx (find-entry-idx-for-pred ;; walk forward
-                timeline
-                idx
-                inc
-                (fn [entry]
-                  (not (str/starts-with? (fn-call-ns timeline entry) "org.httpkit"))))})
+          :idx (walk-forward-to-entry-without-ns-prefix timeline idx "org.httpkit")})
 
        (http-kit-resp-handling-entry? timeline entry)
        (let [resp (ia/get-expr-val entry)]
          {:type :http-response
           :response resp
           :thread-id thread-id
-          :idx (find-entry-idx-for-pred ;; walk back to before being on httpkit response code
-                timeline
-                idx
-                dec
-                (fn [entry]
-                  (not (str/starts-with? (fn-call-ns timeline entry) "org.httpkit"))))})
+          :idx (walk-backwards-to-entry-without-ns-prefix timeline idx "org.httpkit")})
+
+       (jetty-req-handling-entry? timeline entry)
+       (let [req (ia/get-expr-val entry)]
+         {:type :http-request
+          :req (dissoc req :body)
+          :thread-id thread-id
+          :idx (walk-forward-to-entry-without-ns-prefix timeline idx "ring.adapter.jetty")})
+
+       (jetty-resp-handling-entry? timeline entry)
+       (let [resp (ia/get-expr-val entry)]
+         {:type :http-response
+          :response resp
+          :thread-id thread-id
+          :idx (walk-backwards-to-entry-without-ns-prefix timeline idx "ring.adapter.jetty")})
 
        (next-jdbc-sql-entry? timeline entry)
        (let [statement (ia/get-expr-val entry)
@@ -111,16 +168,14 @@
           :statement statement
           :params params
           :thread-id thread-id
-          :idx (find-entry-idx-for-pred ;; walk back to whoever called next.jdbc
-                timeline
-                idx
-                dec
-                (fn [entry]
-                  (not (str/starts-with? (fn-call-ns timeline entry) "next.jdbc"))))})))
+          :idx (walk-backwards-to-entry-without-ns-prefix timeline idx "next.jdbc")})))
     (catch Exception e
       (.printStackTrace e))))
 
-(defn extract-data-task [flow-id]
+(defn extract-data-task
+  "Submit an interruptible task that will search for web-requests, functions calls and
+  sql queries execution."
+  [flow-id]
   (let [*threads-fns-level (atom {})]
     (dbg-api/submit-async-interruptible-batched-timelines-keep-task
      (ia/timelines-for {:flow-id flow-id})

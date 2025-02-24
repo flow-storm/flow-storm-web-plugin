@@ -4,10 +4,9 @@
             [flow-storm.debugger.ui.tasks :as tasks]
             [flow-storm.debugger.ui.utils :as ui-utils]
             [flow-storm.debugger.ui.flows.screen :refer [goto-location]]
-            [flow-storm.debugger.runtime-api :as runtime-api :refer [rt-api]]
-            [clojure.string :as str])
+            [flow-storm.debugger.runtime-api :as runtime-api :refer [rt-api]])
   (:import [javafx.scene.layout Priority VBox HBox]
-           [javafx.scene.control ScrollPane]))
+           [javafx.scene.control TableRow ScrollPane]))
 
 (defn- build-toolbar [flow-cmb  {:keys [on-reload-click]}]
   (let [reload-btn (ui/icon-button
@@ -38,28 +37,45 @@
                                                                                    fn-ns
                                                                                    fn-name))
                                                                 :http-request  (let [{:keys [uri request-method]} (:req msg)]
-                                                                                 (format "[%s] %s" request-method uri))
+                                                                                 (format "Method: %s \n Uri: %s" request-method uri))
                                                                 :http-response (let [{:keys [status body]} (:response msg)]
-                                                                                 (format "[%s] %s" status body))
+                                                                                 (format "Status: %s \n Body: %s" status body))
                                                                 :sql           (let [{:keys [statement params]} msg]
-                                                                                 (format "%s \n %s" statement params))
-                                                                "")))
+                                                                                 (format "Query: %s \n Params: %s" statement params))
+                                                                "")
+                                                              :class "row-label"))
+                                    :row-update (fn [^TableRow trow row-vec]
+                                                  (if-let [row-type (-> row-vec meta :row-type)]
+                                                    (doto trow
+                                                      (.setStyle (format "-fx-background-color: %s"
+                                                                         (case row-type
+                                                                           :fn-call       "#DAE8FC"
+                                                                           :http-request  "#D5E8D4"
+                                                                           :http-response "#FFE6CC"
+                                                                           :sql           "#F8CECC")))
+                                                      (.setOnMouseClicked
+                                                       (ui-utils/event-handler
+                                                           [mev]
+                                                         (when (and (ui-utils/mouse-primary? mev)
+                                                                    (ui-utils/double-click? mev))
+                                                           (let [idx (some (fn [{:keys [idx]}] idx)
+                                                                           row-vec)
+                                                                 flow-id @*flow-id]
+                                                             (when (and flow-id thread-id idx)
+                                                               (goto-location {:flow-id flow-id
+                                                                               :thread-id thread-id
+                                                                               :idx idx})))))))
+                                                    (.setStyle trow "-fx-background-color: #eee")))
+
                                     :resize-policy :constrained
                                     :columns-with-percs [0.3 0.3 0.4]
-                                    :on-click (fn [mev sel-rows _]
-                                                (when (ui-utils/double-click? mev)
-                                                  (let [idx (->> sel-rows first (some (fn [{:keys [idx]}] idx)))
-                                                        flow-id @*flow-id]
-                                                    (when (and flow-id thread-id idx)
-                                                      (goto-location {:flow-id flow-id
-                                                                      :thread-id thread-id
-                                                                      :idx idx})))))
                                     :selection-mode :single)
-                                   table-box (ui/v-box :childs [(ui/label :text (format "Thread id: %d" thread-id))
+                                   table-box (ui/v-box :childs [(ui/label :text (format "Thread id: %d" thread-id)
+                                                                          :class "thread-id")
                                                                 table-view-pane])]
                                (doto table-view
-                                 (.setMinHeight 600)
-                                 (.setMaxHeight 1200))
+                                 ;;(.setMinHeight 600)
+                                 #_(.setMaxHeight 1200))
 
                                (-> table-view
                                    .prefWidthProperty
@@ -75,11 +91,13 @@
                                          (let [add-messages (get @*thread->table-add-messages thread-id)]
                                            (->> messages
                                                 (mapv (fn [{:keys [type] :as m}]
-                                                        (case type
-                                                          :http-request  [m nil nil]
-                                                          :http-response [m nil nil]
-                                                          :fn-call       [nil m nil]
-                                                          :sql           [nil nil m])))
+                                                        (with-meta
+                                                          (case type
+                                                            :http-request  [m nil nil]
+                                                            :http-response [m nil nil]
+                                                            :fn-call       [nil m nil]
+                                                            :sql           [nil nil m])
+                                                          {:row-type type})))
                                                 add-messages)
                                            (add-messages messages)))
 

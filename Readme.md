@@ -2,10 +2,19 @@
 
 ![demo](./images/plugin_demo.png)
 
-**WIP, it currently only support extracting information for http-kit (for the web part) and next.jdbc (for the database)**
-
 **Requires FlowStorm >= 4.2.0-alpha2**
 
+It currently supports and is tested with :
+
+Web servers : 
+
+- httpkit (2.8.0)
+- ring-jetty-adapter (1.13.0)
+
+Dabatabses libs :
+
+- next.jdbc (1.3.994)
+    
 # Installation
 
 Add [![Clojars Project](https://img.shields.io/clojars/v/com.github.flow-storm/flow-storm-web-plugin.svg)](https://clojars.org/com.github.flow-storm/flow-storm-web-plugin) 
@@ -19,8 +28,17 @@ Then on some dev namespace :
 
 When you open the FlowStorm UI you should see a new `Web` tab like in the picture above.
 
-The plugin needs the recordings of the internals of http-kit and next.jdbc namespaces so your FlowStorm instrumentation should include 
-the `org.httpkit` and `next.jdbc` prefixes added to your code prefixes, like `"-Dclojure.storm.instrumentOnlyPrefixes=next.jdbc,org.httpkit,todos,my-web-app-ns"`
+The plugin needs the recordings of the internals of the web and database libraries namespaces it is going to work with so your FlowStorm instrumentation should include 
+these. You can set them via jvm options or any other means like `"-Dclojure.storm.instrumentOnlyPrefixes=next.jdbc,org.httpkit,my-web-app-ns"`
+
+Minimum instrumentation prefixes needed for each library :
+
+- httpkit (`org.httpkit.server`)
+- ring-jetty-adapter (`ring.adapter.jetty`)
+- next.jdbc (`next.jdbc.result-set`)
+
+
+the `org.httpkit` and `next.jdbc` prefixes added to your code prefixes, like 
 
 # Usage
 
