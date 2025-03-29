@@ -2,7 +2,7 @@
 
 ![demo](./images/plugin_demo.png)
 
-**Requires FlowStorm >= 4.2.0-beta2**
+**Requires FlowStorm >= 4.3.0**
 
 It currently supports and is tested with :
 
