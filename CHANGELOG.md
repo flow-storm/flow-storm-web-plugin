@@ -6,6 +6,14 @@
     
 ### Changes
      
+### Bugs fixed 
+
+## 1.0.1 (15-04-2025)
+	
+### New Features
+    
+### Changes
+     
 ### Bugs fixed
 
     - Fix table columns width 
