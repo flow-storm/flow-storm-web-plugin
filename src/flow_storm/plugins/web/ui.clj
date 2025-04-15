@@ -29,21 +29,22 @@
                                    (ui/table-view
                                     :columns ["HTTP" "Logic" "Database"]
                                     :cell-factory (fn [_ {:keys [type] :as msg}]
-                                                    (ui/label :text
-                                                              (case type
-                                                                :fn-call (let [{:keys [fn-ns fn-name level]} msg]
-                                                                           (format "%s %s/%s"
-                                                                                   (apply str (repeat (* 2 level) " "))
-                                                                                   fn-ns
-                                                                                   fn-name))
-                                                                :http-request  (let [{:keys [uri request-method]} (:req msg)]
-                                                                                 (format "Method: %s \n Uri: %s" request-method uri))
-                                                                :http-response (let [{:keys [status body]} (:response msg)]
-                                                                                 (format "Status: %s \n Body: %s" status body))
-                                                                :sql           (let [{:keys [statement params]} msg]
-                                                                                 (format "Query: %s \n Params: %s" statement params))
-                                                                "")
-                                                              :class "row-label"))
+                                                    (doto (ui/label :text
+                                                               (case type
+                                                                 :fn-call (let [{:keys [fn-ns fn-name level]} msg]
+                                                                            (format "%s %s/%s"
+                                                                                    (apply str (repeat (* 2 level) " "))
+                                                                                    fn-ns
+                                                                                    fn-name))
+                                                                 :http-request  (let [{:keys [uri request-method]} (:req msg)]
+                                                                                  (format "Method: %s \n Uri: %s" request-method uri))
+                                                                 :http-response (let [{:keys [status body]} (:response msg)]
+                                                                                  (format "Status: %s \n Body: %s" status body))
+                                                                 :sql           (let [{:keys [statement params]} msg]
+                                                                                  (format "Query: %s \n Params: %s" statement params))
+                                                                 "")
+                                                               :class "row-label")
+                                                      (.setMaxWidth 300)))
                                     :row-update (fn [^TableRow trow row-vec]
                                                   (if-let [row-type (-> row-vec meta :row-type)]
                                                     (doto trow
@@ -68,7 +69,6 @@
                                                     (.setStyle trow "-fx-background-color: #eee")))
 
                                     :resize-policy :constrained
-                                    :columns-with-percs [0.3 0.3 0.4]
                                     :selection-mode :single)
                                    table-box (ui/v-box :childs [(ui/label :text (format "Thread id: %d" thread-id)
                                                                           :class "thread-id")
