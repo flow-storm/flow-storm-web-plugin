@@ -17,20 +17,23 @@ Dabatabses libs :
     
 # Setup
 
-Add [![Clojars Project](https://img.shields.io/clojars/v/com.github.flow-storm/flow-storm-web-plugin.svg)](https://clojars.org/com.github.flow-storm/flow-storm-web-plugin) 
-to your dependencies.
+[![Clojars Project](https://img.shields.io/clojars/v/com.github.flow-storm/flow-storm-web-plugin.svg)](https://clojars.org/com.github.flow-storm/flow-storm-web-plugin) 
 
-Then add to the flow storm plugin jvm option this plugin namespace, like :
-
+In your deps.edn (same can be done with lein profiles) create an alias like :
 
 ```clojure
-"-Dflowstorm.plugins.namespaces=flow-storm.plugins.web.all"
+{...
+ :aliases
+ {...
+  :fs-web-plugin {:extra-deps {com.github.flow-storm/flow-storm-web-plugin {:mvn/version "1.0.1"}}
+                  :jvm-opts ["-Dclojure.storm.instrumentOnlyPrefixes.webPlugin=org.httpkit.server,ring.adapter.jetty,next.jdbc.result-set"
+                             "-Dflowstorm.plugins.namespaces.webPlugin=flow-storm.plugins.web.all"]}
+}}}
 ```
 
-When you open the FlowStorm UI you should see a new `Web` tab like in the picture above.
+Then, in your projects, just make sure you start your repl with the `:fs-web-plugin` alias.
 
-The plugin needs the recordings of the internals of the web and database libraries namespaces it is going to work with so your FlowStorm instrumentation should include 
-these. You can set them via jvm options or by any other means like `"-Dclojure.storm.instrumentOnlyPrefixes=next.jdbc,org.httpkit,my-web-app-ns"`
+When you open the FlowStorm UI you should see a new `Web` tab like in the picture above.
 
 Minimum instrumentation prefixes needed for each library :
 
