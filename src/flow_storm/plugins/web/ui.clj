@@ -44,7 +44,8 @@
                                                                                   (format "Query: %s \n Params: %s" statement params))
                                                                  "")
                                                                :class "row-label")
-                                                      (.setMaxWidth 300)))
+                                                      (.setMaxWidth 300)
+                                                      (.setMaxHeight 100)))
                                     :row-update (fn [^TableRow trow row-vec]
                                                   (if-let [row-type (-> row-vec meta :row-type)]
                                                     (doto trow
