@@ -25,7 +25,7 @@ In your deps.edn (same can be done with lein profiles) create an alias like :
 {...
  :aliases
  {...
-  :fs-web-plugin {:extra-deps {com.github.flow-storm/flow-storm-web-plugin {:mvn/version "1.0.1"}}
+  :fs-web-plugin {:extra-deps {com.github.flow-storm/flow-storm-web-plugin {:mvn/version "1.0.2"}}
                   :jvm-opts ["-Dclojure.storm.instrumentOnlyPrefixes.webPlugin=org.httpkit.server,ring.adapter.jetty,next.jdbc.result-set"
                              "-Dflowstorm.plugins.namespaces.webPlugin=flow-storm.plugins.web.all"]}
 }}}
