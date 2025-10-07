@@ -8,6 +8,8 @@
 
 ### Bugs fixed
 
+    - Fix extra empty rows in thread tables
+
 ## 1.0.2 (05-05-2025)
 	
 ### New Features

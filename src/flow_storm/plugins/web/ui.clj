@@ -29,25 +29,25 @@
                                    (ui/table-view
                                     :columns ["HTTP" "Logic" "Database"]
                                     :cell-factory (fn [_ {:keys [type] :as msg}]
-                                                    (doto (ui/label :text
-                                                               (case type
-                                                                 :fn-call (let [{:keys [fn-ns fn-name level]} msg]
-                                                                            (format "%s %s/%s"
-                                                                                    (apply str (repeat (* 2 level) " "))
-                                                                                    fn-ns
-                                                                                    fn-name))
-                                                                 :http-request  (let [{:keys [uri request-method]} (:req msg)]
-                                                                                  (format "Method: %s \n Uri: %s" request-method uri))
-                                                                 :http-response (let [{:keys [status body]} (:response msg)]
-                                                                                  (format "Status: %s \n Body: %s" status body))
-                                                                 :sql           (let [{:keys [statement params]} msg]
-                                                                                  (format "Query: %s \n Params: %s" statement params))
-                                                                 "")
-                                                               :class "row-label")
-                                                      (.setMaxWidth 300)
-                                                      (.setMaxHeight 100)))
+                                                    (case type
+                                                      :fn-call (let [{:keys [fn-ns fn-name level]} msg]
+                                                                 (ui/label :text (format "%s %s/%s"
+                                                                                         (apply str (repeat (* 2 level) " "))
+                                                                                         fn-ns
+                                                                                         fn-name)
+                                                                           :class "row-label"))
+                                                      :http-request  (let [{:keys [uri request-method]} (:req msg)]
+                                                                       (ui/label :text (format "Method: %s \n Uri: %s" request-method uri)
+                                                                                 :class "row-label"))
+                                                      :http-response (let [{:keys [status]} (:response msg)]
+                                                                       (ui/label :text (format "Status: %s" status)
+                                                                                 :class "row-label"))
+                                                      :sql           (let [{:keys [statement params]} msg]
+                                                                       (ui/label :text (format "Query: %s \n Params: %s" statement params)
+                                                                                 :class "row-label"))
+                                                      nil))
                                     :row-update (fn [^TableRow trow row-vec]
-                                                  (if-let [row-type (-> row-vec meta :row-type)]
+                                                  (when-let [row-type (-> row-vec meta :row-type)]
                                                     (doto trow
                                                       (.setStyle (format "-fx-background-color: %s"
                                                                          (case row-type
@@ -57,17 +57,16 @@
                                                                            :sql           "#F8CECC")))
                                                       (.setOnMouseClicked
                                                        (ui-utils/event-handler
-                                                           [mev]
-                                                         (when (and (ui-utils/mouse-primary? mev)
-                                                                    (ui-utils/double-click? mev))
-                                                           (let [idx (some (fn [{:keys [idx]}] idx)
-                                                                           row-vec)
-                                                                 flow-id @*flow-id]
-                                                             (when (and flow-id thread-id idx)
-                                                               (goto-location {:flow-id flow-id
-                                                                               :thread-id thread-id
-                                                                               :idx idx})))))))
-                                                    (.setStyle trow "-fx-background-color: #eee")))
+                                                        [mev]
+                                                        (when (and (ui-utils/mouse-primary? mev)
+                                                                   (ui-utils/double-click? mev))
+                                                          (let [idx (some (fn [{:keys [idx]}] idx)
+                                                                          row-vec)
+                                                                flow-id @*flow-id]
+                                                            (when (and flow-id thread-id idx)
+                                                              (goto-location {:flow-id flow-id
+                                                                              :thread-id thread-id
+                                                                              :idx idx})))))))))
 
                                     :resize-policy :constrained
                                     :selection-mode :single)
@@ -96,8 +95,7 @@
                                                             :fn-call       [nil m nil]
                                                             :sql           [nil nil m])
                                                           {:row-type type})))
-                                                add-messages)
-                                           (add-messages messages)))
+                                                add-messages)))
 
           flow-cmb (ui/combo-box :items []
                                  :cell-factory (fn [_ flow-id] (ui/label :text (str flow-id)))
