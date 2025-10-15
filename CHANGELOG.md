@@ -7,6 +7,14 @@
 ### Changes
 
 ### Bugs fixed
+    
+## 1.0.3 (07-10-2025)
+	
+### New Features
+    
+### Changes
+
+### Bugs fixed
 
     - Fix extra empty rows in thread tables
 
